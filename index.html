@@ -15,9 +15,15 @@
 <script>
   const id = function(id) { return document.getElementById(id); };
 
+  const State = {
+    InPlay: "InPlay",
+    GameOver: "GameOver"
+  }
+
   document.addEventListener("keydown", keyDownHandler);
   document.addEventListener("keyup", keyUpHandler);
   document.addEventListener("mousemove", mouseMoveHandler);
+  document.addEventListener("mousedown", mouseDownHandler);
 
   // JavaScript code goes here
   const canvas = id("myCanvas");
@@ -30,17 +36,21 @@
 
   const ctx = canvas.getContext("2d"); 
 
+  let state = State.InPlay;
   let rightPressed = false;
   let leftPressed = false;
 
   const ballRadius = 10;
-  let x = canvas.width / 2;
-  let y = canvas.height - 30;
-  let dx = 2;
-  let dy = -2;
-  const paddleHeight = 10;
-  const paddleWidth = 75;
+  let x;
+  let y;
+  let dx;
+  let dy;
+  resetBallPosition();
+  const paddleHeight = 80;
+  const paddleWidth = 200;
+  const paddleHoverHeight = 70;
   let paddleX = (canvas.width - paddleWidth) / 2;
+  const restartButtonBox = getRestartButtonBox();
 
   const brickRowCount = 3;
   const brickColumnCount = 5;
@@ -49,57 +59,83 @@
   const brickPadding = 10;
   const brickOffsetTop = 30;
   const brickOffsetLeft = 30;
-  let score = 0;
-  let lives = 3;
-
   const bricks = [];
-  for(let c = 0; c < brickColumnCount; c++) {
-      bricks[c] = [];
-      for(let r = 0; r < brickRowCount; r++) {
-          bricks[c][r] = { x: 0, y: 0, status: 1 };
-      }
+
+  restartGame();
+
+  function restartGame() {
+    state = state.InPlay;
+    score = 0;
+    lives = 3;
+    for(let c = 0; c < brickColumnCount; c++) {
+        bricks[c] = [];
+        for(let r = 0; r < brickRowCount; r++) {
+            bricks[c][r] = { x: 0, y: 0, status: 1 };
+        }
+    }
+    resetBallPosition();
+  }
+
+  function resetBallPosition() {
+    x = canvas.width / 2;
+    y = canvas.height - 500;
+    dx = 2.5;
+    dy = 2.5;
   }
 
   function drawBall() {
+    ctx.save();
     ctx.beginPath();
     ctx.arc(x, y, ballRadius, 0, Math.PI*2);
-    ctx.fillStyle = "#0095DD";
+    ctx.fillStyle = "#ff00DD";
     ctx.fill();
     ctx.closePath();
+    ctx.restore();
   }
 
   function draw() {
+    if (state === State.GameOver) {
+      drawGameOver();
+    } else {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawBall();
     drawPaddle();
+    drawBall();
     drawBricks();
     drawScore();
     drawLives();
  
+    // Check if ball hit the walls
     if(x + dx > canvas.width - ballRadius ||
        x + dx < ballRadius) {
       dx = -dx;
     }
 
+    // Check if ball hit the ceiling.
     if(y + dy < ballRadius) {
       dy = -dy;
-    } else if (y + dy > canvas.height - ballRadius) {
+    } 
+
+
+    // Check if ball hit the top of the paddle.
+    if (
+      y <= canvas.height - ballRadius - paddleHeight - paddleHoverHeight &&
+      y + dy > canvas.height - ballRadius - paddleHeight - paddleHoverHeight
+
+      ) {
       if (x > paddleX && x < paddleX + paddleWidth) {
-        dy = -(dy + 1);
-        dx = dx + (dx > 0 ? 1 : -1);
+        dy = -dy;
       }
-      else {
-        lives--;
-        if (lives ==0) {
-          alert("GAME OVER");
-          document.location.reload();
-        } else {
-            x = canvas.width/2;
-            y = canvas.height-30;
-            dx = 2;
-            dy = -2;
-            paddleX = (canvas.width-paddleWidth)/2; 
-        }
+    } 
+
+    detectPaddleSideCollision();
+
+    // Check if ball hit the floor
+    if (y + dy > canvas.height) {
+      lives--;
+      if (lives ==0) {
+        gameOver();
+      } else {
+          resetBallPosition();
       }
     }
 
@@ -119,6 +155,7 @@
     }
 
     collisionDetection();
+    }
     requestAnimationFrame(draw);
   }
 
@@ -126,13 +163,14 @@
 
   function drawPaddle() {
     ctx.beginPath();
-    ctx.rect(paddleX, canvas.height - paddleHeight, paddleWidth, paddleHeight);
+    ctx.rect(paddleX, canvas.height - paddleHeight - paddleHoverHeight, paddleWidth, paddleHeight);
     ctx.fillStyle = "#0095DD";
     ctx.fill();
     ctx.closePath();
   }
 
   function drawBricks() {
+    ctx.save();
     for(let c = 0; c < brickColumnCount; c++) {
         for(let r = 0; r < brickRowCount; r++) {
           if(bricks[c][r].status == 1) {
@@ -148,6 +186,7 @@
           }
         }
     }
+    ctx.restore();
   }
 
   function keyDownHandler(e) {
@@ -169,10 +208,22 @@
   }
 
   function mouseMoveHandler(e) {
-    console.log("In mouseMoveHandler");
     const relativeX = e.clientX - canvas.offsetLeft;
     if(relativeX > 0 && relativeX < canvas.width) {
         paddleX = relativeX - paddleWidth/2;
+        detectPaddleSideCollision();
+    }
+  }
+
+  function mouseDownHandler(e) {
+    const relativeX = e.clientX - canvas.offsetLeft;
+    const relativeY = e.clientY - canvas.offsetTop;
+    if (state == State.GameOver) {
+      if (relativeX > restartButtonBox.x && relativeY > restartButtonBox.y &&
+        relativeX < restartButtonBox.x + restartButtonBox.width &&
+        relativeY < restartButtonBox.y + restartButtonBox.height) {
+        restartGame();
+      }
     }
   }
 
@@ -195,6 +246,7 @@
       const relativeX = e.touches[0].clientX - canvas.offsetLeft;
       if(relativeX > 0 && relativeX < canvas.width) {
           paddleX = relativeX - paddleWidth/2;
+          detectPaddleSideCollision();
       }
     }
   }
@@ -205,6 +257,46 @@
 
   function touchCancelHandler(e) {
     paddleTouchEngaged = false;
+  }
+
+  function detectPaddleSideCollision() {
+    // Check if the ball is below and above the paddle.
+    if (y > canvas.height - ballRadius - paddleHeight - paddleHoverHeight &&
+      y < canvas.height - paddleHoverHeight) {
+
+
+      // To prevent tunneling, check if the ball is already inside the paddle. Then correct the ball to bounce back from the likely place it hit.
+      if (x > paddleX - ballRadius && x < paddleX + paddleWidth + ballRadius)
+      {
+        // Tunnelling probably happens from the sides since the player can move the paddle fast enough to cause it to happen.
+        // If dx is positive, the tunneling probably happened from the left side. If dx is negative, then tunneling probably happened from the right side.
+
+        if (Math.abs(paddleX - x) < Math.abs(paddleX + paddleWidth -x) ) {
+          console.log("detected tunneling paddle hit from left");
+          x = paddleX - ballRadius - dx;
+          dx * -dx;
+          return;
+        } else {
+          console.log("detected tunneling paddle hit from right");
+          x = paddleX + paddleWidth + ballRadius + dx;
+          dx * -dx;
+          return;
+        }
+      }
+
+      // Check if the ball hit the left of the paddle
+      if (x <= paddleX - ballRadius &&
+        x + dx > paddleX - ballRadius) {
+        dx = -dx;
+      }
+
+      // Check if the ball hit the right of the paddle.
+      if (x >= paddleX + paddleWidth + ballRadius &&
+        x + dx < paddleX + paddleWidth + ballRadius) {
+        dx = -dx;
+      }
+    }
+
   }
 
   function collisionDetection() {
@@ -227,16 +319,73 @@
     }
   }
 
+  function getRestartButtonBox() {
+    const buttonPaddingX = 60;
+    const buttonPaddingY = 30;
+    const font = "40px Arial";
+    ctx.save();
+    ctx.font = font;
+    const text = ctx.measureText("Restart");
+    ctx.restore();
+    const restartTextY = canvas.height / 2;
+    const restartButtonX = canvas.width/2 - text.width/2 - buttonPaddingX;
+    const restartButtonY = restartTextY - text.fontBoundingBoxAscent - buttonPaddingY;
+    const restartButtonWidth = text.width + buttonPaddingX * 2;
+    const restartButtonHeight = text.fontBoundingBoxAscent + text.fontBoundingBoxDescent + buttonPaddingY * 2;
+
+    return {
+      x: restartButtonX, 
+      y: restartButtonY, 
+      width: restartButtonWidth,
+      height: restartButtonHeight,
+      draw: function() {
+        ctx.save();
+        ctx.font = font;
+        const restartTextY = canvas.height / 2;
+        const text = ctx.measureText("Restart");
+        ctx.beginPath();
+        ctx.rect(
+          restartButtonBox.x, restartButtonBox.y, restartButtonBox.width, restartButtonBox.height); 
+        ctx.fillStyle = "#0095DD";
+        ctx.fill();
+        ctx.closePath();
+        ctx.font = font;
+        ctx.fillStyle = "white";
+        ctx.fillText("Restart", canvas.width / 2, restartTextY);
+        ctx.restore();
+      }
+    };
+  }
+
+  function gameOver() {
+    state = State.GameOver;
+  }
+
+  function drawGameOver() {
+    ctx.save();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.font = "60px Arial";
+    ctx.fillStyle = "#0095DD";
+    ctx.textAlign = "center";
+    ctx.fillText("Game Over", canvas.width / 2, canvas.height/3);
+    restartButtonBox.draw();
+    ctx.restore();
+  }
+
   function drawScore() {
+    ctx.save();
     ctx.font = "16px Arial";
     ctx.fillStyle = "#0095DD";
     ctx.fillText("Score: "+score, 8, 20);
+    ctx.restore();
   }
 
   function drawLives() {
+    ctx.save();
     ctx.font = "16px Arial";
     ctx.fillStyle = "#0095DD";
     ctx.fillText("Lives: "+lives, canvas.width-65, 20);
+    ctx.restore();
   }
 
 </script>
