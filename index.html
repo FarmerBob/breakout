@@ -14,10 +14,95 @@
 
 <script>
   const id = function(id) { return document.getElementById(id); };
+  const color = "#0095DD";
+  const lineWidth = 2;
+
+  class Circle {
+    constructor(x, y, radius) {
+      this.x = x;
+      this.y = y;
+      this.radius = radius;
+    }
+
+    draw() {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  class Rectangle {
+    constructor(x, y, width, height) {
+      this.x = x;
+      this.y = y;
+      this.width = width;
+      this.height = height;
+    }
+
+    draw() {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(this.x, this.y, this.width, this.height);
+      ctx.stroke();
+      ctx.closePath();
+      ctx.restore();
+    }
+  }
+
+  class Line {
+    constructor(x1, y1, x2, y2) {
+      this.x1 = x1;
+      this.y1 = y1;
+      this.x2 = x2;
+      this.y2 = y2;
+    }
+
+    draw() {
+      ctx.save();
+      ctx.moveTo(this.x1, this.y1);
+      ctx.lineTo(this.x2, this.y2);
+      ctx.stroke();    
+      ctx.restore();
+    }
+
+
+
+  }
+
+  // ComplexShape consists of several simpler shapes.
+  class ComplexShape {
+    x;
+    y;
+    shapes;
+    constructor(shapes) {
+      this.shapes = shapes;
+    }
+
+    draw(ctx) {
+      ctx.save();
+      ctx.translate(this.x, this.y);
+
+      ctx.save();
+      // Draw origin marker
+      ctx.beginPath();
+      ctx.arc(0, 0, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.closePath();
+      ctx.restore();
+
+      for(let shape of this.shapes) {
+        shape.draw();
+      }
+      ctx.restore();
+    }
+  }
 
   const State = {
     InPlay: "InPlay",
-    GameOver: "GameOver"
+    GameOver: "GameOver",
+    Paused: "Paused"
   }
 
   document.addEventListener("keydown", keyDownHandler);
@@ -35,10 +120,13 @@
   canvas.addEventListener("touchcancel", touchCancelHandler);
 
   const ctx = canvas.getContext("2d"); 
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
 
-  let state = State.InPlay;
+  let state;
   let rightPressed = false;
   let leftPressed = false;
+  let paddleTouchEngaged = false;
 
   const ballRadius = 10;
   let x;
@@ -60,13 +148,18 @@
   const brickOffsetTop = 30;
   const brickOffsetLeft = 30;
   const bricks = [];
+  const minifigure = defineMinifigure();
+  minifigure.x = 100;
+  minifigure.y = 300;
 
   restartGame();
+  minifigure.draw(ctx);
+  state = State.Paused;
 
   function restartGame() {
-    state = state.InPlay;
+    state = State.InPlay;
     score = 0;
-    lives = 3;
+    lives = 50;
     for(let c = 0; c < brickColumnCount; c++) {
         bricks[c] = [];
         for(let r = 0; r < brickRowCount; r++) {
@@ -78,9 +171,9 @@
 
   function resetBallPosition() {
     x = canvas.width / 2;
-    y = canvas.height - 500;
-    dx = 2.5;
-    dy = 2.5;
+    y = canvas.height - 300;
+    dx = 3;
+    dy = 3;
   }
 
   function drawBall() {
@@ -96,6 +189,8 @@
   function draw() {
     if (state === State.GameOver) {
       drawGameOver();
+    } else if (state === State.Paused) {
+      drawPauseState();
     } else {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawPaddle();
@@ -103,6 +198,7 @@
     drawBricks();
     drawScore();
     drawLives();
+    minifigure.draw(ctx);
  
     // Check if ball hit the walls
     if(x + dx > canvas.width - ballRadius ||
@@ -169,6 +265,43 @@
     ctx.closePath();
   }
 
+  function drawGameOver() {
+    ctx.save();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.font = "60px Arial";
+    ctx.fillStyle = "#0095DD";
+    ctx.textAlign = "center";
+    ctx.fillText("Game Over", canvas.width / 2, canvas.height/3);
+    restartButtonBox.draw();
+    ctx.restore();
+  }
+
+  function drawPauseState() {
+    ctx.save();
+    const pauseText = "PAUSED";
+    ctx.font = "60px Arial";
+    ctx.fillStyle = "#0095DD";
+    ctx.fillText(pauseText, canvas.width / 2, canvas.height / 2);
+    ctx.restore();
+  }
+
+  function drawScore() {
+    ctx.save();
+    ctx.font = "16px Arial";
+    ctx.fillStyle = "#0095DD";
+    ctx.fillText("Score: "+score, 8, 20);
+    ctx.restore();
+  }
+
+  function drawLives() {
+    ctx.save();
+    ctx.font = "16px Arial";
+    ctx.fillStyle = "#0095DD";
+    ctx.fillText("Lives: "+lives, canvas.width-65, 20);
+    ctx.restore();
+  }
+
+
   function drawBricks() {
     ctx.save();
     for(let c = 0; c < brickColumnCount; c++) {
@@ -190,11 +323,20 @@
   }
 
   function keyDownHandler(e) {
-    if(e.key == "Right" || e.key == "ArrowRight") {
+    if(e.key === "Right" || e.key === "ArrowRight") {
         rightPressed = true;
     }
-    else if(e.key == "Left" || e.key == "ArrowLeft") {
+    else if(e.key === "Left" || e.key === "ArrowLeft") {
         leftPressed = true;
+    }
+
+    if(e.code === 'KeyP') {
+      console.log("KeyP is pressed")
+      if (state === State.InPlay) {
+        state = State.Paused;
+      } else if (state === State.Paused) {
+        state = State.InPlay;
+      }
     }
   }
 
@@ -226,8 +368,6 @@
       }
     }
   }
-
-  let paddleTouchEngaged = false;
 
   function touchStartHandler(e) {
     console.log("In touch start");
@@ -361,31 +501,32 @@
     state = State.GameOver;
   }
 
-  function drawGameOver() {
-    ctx.save();
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.font = "60px Arial";
-    ctx.fillStyle = "#0095DD";
-    ctx.textAlign = "center";
-    ctx.fillText("Game Over", canvas.width / 2, canvas.height/3);
-    restartButtonBox.draw();
-    ctx.restore();
-  }
+  function defineMinifigure() {
+    const shapes = [];
+    const head = new Circle(15, 5, 22)
+    shapes.push(head);
+    const headBump = new Rectangle(6, -37, 18, 20);
+    shapes.push(headBump);
+    const torso = new Rectangle(0, 36, 30, 60);
+    shapes.push(torso);
+    const leftArm = new Line(0, 40, -25, 33);
+    shapes.push(leftArm);
+    const rightArm = new Line(30, 40, 48, 60);
+    shapes.push(rightArm);
+    const leftLeg = new Line(0, 96, -10, 120);
+    shapes.push(leftLeg);
+    const rightLeg = new Line(30, 96, 35, 120);
+    shapes.push(rightLeg);
+    const hoverboardBottom = new Rectangle(-23, 120, 70, 10);
+    shapes.push(hoverboardBottom);
+    const hoverboardLeft = new Rectangle(-83, 120, 60, 10);
+    shapes.push(hoverboardLeft);
+    const hoverboardRight = new Rectangle(47, 120, 60, 10);
+    shapes.push(hoverboardRight);
 
-  function drawScore() {
-    ctx.save();
-    ctx.font = "16px Arial";
-    ctx.fillStyle = "#0095DD";
-    ctx.fillText("Score: "+score, 8, 20);
-    ctx.restore();
-  }
 
-  function drawLives() {
-    ctx.save();
-    ctx.font = "16px Arial";
-    ctx.fillStyle = "#0095DD";
-    ctx.fillText("Lives: "+lives, canvas.width-65, 20);
-    ctx.restore();
+    return new ComplexShape(shapes);
+
   }
 
 </script>
