@@ -99,11 +99,6 @@
       ctx.translate(this.x, this.y);
 
       ctx.save();
-      // Draw origin marker
-      ctx.beginPath();
-      ctx.arc(0, 0, 5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.closePath();
       ctx.restore();
 
       for(let shape of this.shapes) {
@@ -118,6 +113,20 @@
     GameOver: "GameOver",
     Paused: "Paused"
   }
+
+  window.addEventListener("gamepadconnected", function(e) {
+    console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
+      e.gamepad.index, e.gamepad.id,
+      e.gamepad.buttons.length, e.gamepad.axes.length);
+    gamepad = e.gamepad;
+  });
+
+  window.addEventListener("gamepaddisconnected", function(e) {
+    console.log("Gamepad disconnected from index %d: %s",
+      e.gamepad.index, e.gamepad.id);
+    gamepad = null;
+  });
+
 
   document.addEventListener("keydown", keyDownHandler);
   document.addEventListener("keyup", keyUpHandler);
@@ -163,12 +172,12 @@
   const brickOffsetLeft = 30;
   const bricks = [];
   const minifigure = defineMinifigure();
-  minifigure.x = 300;
+  minifigure.x = 200;
   minifigure.y = 300;
 
   restartGame();
   minifigure.draw(ctx);
-  state = State.Paused;
+  // state = State.Paused;
 
   function restartGame() {
     state = State.InPlay;
@@ -200,7 +209,26 @@
     ctx.restore();
   }
 
-  function draw() {
+  function drawGame() {
+    const gamepads = navigator.getGamepads();
+    gamepad = gamepads.find(g => g != null);
+    const figureVelocity = 5;
+    if (gamepad != null) {
+      xAxisRounded = Math.round(5 * gamepad.axes[0]) / 5;
+      minifigureDx = xAxisRounded * figureVelocity;
+      minifigure.x += minifigureDx;
+      yAxisRounded = Math.round(5 * gamepad.axes[1]) / 5;
+      minifigureDy = yAxisRounded * figureVelocity;
+      minifigure.y += minifigureDy;
+
+      minifigure.x = Math.max(minifigure.x, 0);
+      minifigure.x = Math.min(minifigure.x, canvas.width);
+
+      minifigure.y = Math.max(minifigure.y, 0);
+      minifigure.y = Math.min(minifigure.y, canvas.height);
+    }
+
+
     if (state === State.GameOver) {
       drawGameOver();
     } else if (state === State.Paused) {
@@ -266,10 +294,10 @@
 
     collisionDetection();
     }
-    requestAnimationFrame(draw);
+    requestAnimationFrame(drawGame);
   }
 
-  draw();
+  drawGame();
 
   function drawPaddle() {
     ctx.beginPath();
