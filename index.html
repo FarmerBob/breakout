@@ -14,7 +14,7 @@
 <canvas id="myCanvas" width="480" height="320"></canvas>
 
 <div style="display:flex;align-items:center;justify-content: center;margin-top:20px">
-  <button style="padding:15px 40px" onclick='canvas.requestFullscreen()'>Full Screen</button>
+  <button style="padding:15px 40px" onclick='requestFullScreen()'>Full Screen</button>
 </div>
 
 <script>
@@ -578,6 +578,17 @@
     shapes.push(hoverboardRight);
 
     return new ComplexShape(shapes);
+  }
+
+  function requestFullScreen() {
+    if(canvas.requestFullscreen) {
+      console.log("requestFullscreen");
+      canvas.requestFullscreen();
+    } else if(canvas.webkitRequestFullscreen) {
+      console.log("webkitRequestFullscreen");
+      canvas.requestFullscreen();
+      canvas.webkitRequestFullscreen();
+    }
   }
 
 </script>
