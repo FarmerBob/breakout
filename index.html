@@ -218,7 +218,7 @@
   function drawGame() {
     const gamepads = navigator.getGamepads();
     gamepad = gamepads.find(g => g != null);
-    const figureVelocity = 5;
+    const figureVelocity = 11;
     if (gamepad != null) {
       xAxisRounded = Math.round(5 * gamepad.axes[0]) / 5;
       minifigureDx = xAxisRounded * figureVelocity;
