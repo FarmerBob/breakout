@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html>
 <head>
     <meta charset="utf-8" />
@@ -34,6 +35,11 @@
   }
 
   class Rectangle {
+    // How many radians to rotate by
+    rotation = 0;
+    // rotationX, rotationY are center of rotation
+    rotationX = 0;
+    rotationY = 0;
     constructor(x, y, width, height) {
       this.x = x;
       this.y = y;
@@ -43,8 +49,16 @@
 
     draw() {
       ctx.save();
+      let relativeX = this.x;
+      let relativeY = this.y;
+      if (this.rotation != 0) {
+        relativeX = this.x - this.rotationX;
+        relativeY = this.y - this.rotationY;
+      }
+      ctx.translate(this.rotationX, this.rotationY);
+      ctx.rotate(this.rotation);
       ctx.beginPath();
-      ctx.rect(this.x, this.y, this.width, this.height);
+      ctx.rect(relativeX, relativeY, this.width, this.height);
       ctx.stroke();
       ctx.closePath();
       ctx.restore();
@@ -149,7 +163,7 @@
   const brickOffsetLeft = 30;
   const bricks = [];
   const minifigure = defineMinifigure();
-  minifigure.x = 100;
+  minifigure.x = 300;
   minifigure.y = 300;
 
   restartGame();
@@ -520,13 +534,17 @@
     const hoverboardBottom = new Rectangle(-23, 120, 70, 10);
     shapes.push(hoverboardBottom);
     const hoverboardLeft = new Rectangle(-83, 120, 60, 10);
+    hoverboardLeft.rotation = .3;
+    hoverboardLeft.rotationX = -23;
+    hoverboardLeft.rotationY = 120;
     shapes.push(hoverboardLeft);
     const hoverboardRight = new Rectangle(47, 120, 60, 10);
+    hoverboardRight.rotation = -.3;
+    hoverboardRight.rotationX = 47;
+    hoverboardRight.rotationY = 120;
     shapes.push(hoverboardRight);
 
-
     return new ComplexShape(shapes);
-
   }
 
 </script>
