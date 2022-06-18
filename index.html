@@ -14,7 +14,7 @@
 <canvas id="myCanvas" width="480" height="320"></canvas>
 
 <div style="display:flex;align-items:center;justify-content: center;margin-top:20px">
-  <button style="padding:15px 40px" onclick='requestFullScreen()'>Full Screen</button>
+  <button style="padding:15px 40px" onclick='requestFullScreen()'>Full Screen!</button>
 </div>
 
 <script>
@@ -137,6 +137,7 @@
   document.addEventListener("mousemove", mouseMoveHandler);
   document.addEventListener("mousedown", mouseDownHandler);
   document.addEventListener('fullscreenerror', e => console.log(e));
+   document.addEventListener('fullscreenchange', fullScreenChanged); 
 
   // JavaScript code goes here
   const canvas = id("myCanvas");
@@ -587,6 +588,16 @@
     } else if(canvas.webkitRequestFullscreen) {
       console.log("webkitRequestFullScreen");
       canvas.webkitRequestFullScreen();
+    }
+  }
+
+  function fullScreenChanged() {
+    if (document.fullscreenElement) {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    } else {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight - 100;
     }
   }
 
