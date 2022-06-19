@@ -54,14 +54,12 @@
 
     draw() {
       ctx.save();
-      let relativeX = this.x;
-      let relativeY = this.y;
       if (this.rotation != 0) {
-        relativeX = this.x - this.rotationX;
-        relativeY = this.y - this.rotationY;
+        ctx.translate(this.rotationX, this.rotationY);
+        ctx.rotate(this.rotation);
       }
-      ctx.translate(this.rotationX, this.rotationY);
-      ctx.rotate(this.rotation);
+      const relativeX = this.x - this.rotationX;
+      const relativeY = this.y - this.rotationY;
       ctx.beginPath();
       ctx.rect(relativeX, relativeY, this.width, this.height);
       ctx.stroke();
@@ -585,7 +583,7 @@
 
   function defineMinifigure() {
     const shapes = [];
-    const head = new Circle(15, 5, 22)
+    const head = new Circle(15, 5, 22);
     shapes.push(head);
     const headBump = new Rectangle(6, -37, 18, 20);
     shapes.push(headBump);
