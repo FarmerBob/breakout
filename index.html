@@ -34,6 +34,7 @@
       ctx.beginPath();
       ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
       ctx.stroke();
+      ctx.closePath();
       ctx.restore();
     }
   }
@@ -100,10 +101,8 @@
 
     draw(ctx) {
       ctx.save();
+      ctx.fillStyle = color;
       ctx.translate(this.x, this.y);
-
-      ctx.save();
-      ctx.restore();
 
       for(let shape of this.shapes) {
         shape.draw();
@@ -156,6 +155,11 @@
   let rightPressed = false;
   let leftPressed = false;
   let paddleTouchEngaged = false;
+  const minBubbleY = canvas.height - 150;
+  const maxBubbleY = canvas.height - 30;
+  let bubbleX = pickBubbleX();
+  let bubbleY = maxBubbleY;
+  let bubbleUpSpeed = 1.1;
 
   const ballRadius = 10;
   let x;
@@ -182,7 +186,6 @@
   minifigure.y = 300;
 
   restartGame();
-  minifigure.draw(ctx);
   // state = State.Paused;
 
   function restartGame() {
@@ -201,8 +204,8 @@
   function resetBallPosition() {
     x = canvas.width / 2 - 190;
     y = canvas.height - 400;
-    dx = 10;
-    dy = 10;
+    dx = 3;
+    dy = 3;
   }
 
   function drawBall() {
@@ -248,6 +251,15 @@
     drawScore();
     drawLives();
     minifigure.draw(ctx);
+
+    bubbleY -= bubbleUpSpeed;
+    if(bubbleY < minBubbleY) {
+      bubbleY = maxBubbleY;
+      bubbleX = pickBubbleX();
+    }
+    if (bubbleY - minBubbleY == -1) {
+      console.log("bubbleY diff is negative. bubbleY: " + bubbleY + ", minBubbleY: " + minBubbleY);
+    }
  
     // Check if ball hit the walls
     if(x + dx > canvas.width - ballRadius ||
@@ -307,11 +319,13 @@
   drawGame();
 
   function drawPaddle() {
+    ctx.save();
     ctx.beginPath();
     ctx.rect(paddleX, canvas.height - paddleHeight - paddleHoverHeight, paddleWidth, paddleHeight);
     ctx.fillStyle = "#0095DD";
     ctx.fill();
     ctx.closePath();
+    ctx.restore();
   }
 
   function drawGameOver() {
@@ -373,9 +387,20 @@
 
   function drawLava() {
     ctx.save();
-    ctx.rect(0, canvas.height - 90, canvas.width, 90);
+    ctx.beginPath();
     ctx.fillStyle = 'red';
+    ctx.rect(0, canvas.height - 90, canvas.width, 90);
     ctx.fill();
+    ctx.closePath();
+
+    // Draw bubbles
+    // ctx.beginPath();
+    // const opacity = Math.round(256 * (bubbleY - minBubbleY) / (maxBubbleY - minBubbleY)).toString(16).padStart(2, 0);
+    // // ctx.fillStyle = "#ff0000" + opacity;
+    // ctx.fillStyle = "#ff0000" + opacity;
+    // ctx.arc(bubbleX, bubbleY, 20, 0, Math.PI * 2);
+    // ctx.fill();
+    // ctx.closePath();
     ctx.restore();
   }
 
@@ -609,6 +634,10 @@
       canvas.height = window.innerHeight - 100;
     }
   }
+
+  function pickBubbleX() {
+    return Math.floor(Math.random() * canvas.width);
+}
 
 </script>
 
