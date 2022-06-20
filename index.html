@@ -46,8 +46,6 @@
       } else {
         ctx.stroke();
       }
-
-      console.log("strokeStyle: " + this.strokeStyle);
       ctx.closePath();
       ctx.restore();
     }
@@ -115,6 +113,7 @@
 
     draw(ctx) {
       ctx.save();
+      ctx.lineWidth = 2;
       if (this.fillStyle != undefined) {
         ctx.fillStyle = this.fillStyle;
       }
@@ -179,6 +178,10 @@
   let bubbleX = pickBubbleX();
   let bubbleY = maxBubbleY;
   let bubbleUpSpeed = 1.1;
+  // Amplitude of control points, not of the drawn wave.
+  const maxLavaAmplitude = 8;
+  let lavaAmplitude = maxLavaAmplitude;
+  let dLavaAmplitude = -0.1;
 
   const ballRadius = 10;
   let x;
@@ -275,9 +278,6 @@
     if(bubbleY < minBubbleY) {
       bubbleY = maxBubbleY;
       bubbleX = pickBubbleX();
-    }
-    if (bubbleY - minBubbleY == -1) {
-      console.log("bubbleY diff is negative. bubbleY: " + bubbleY + ", minBubbleY: " + minBubbleY);
     }
  
     // Check if ball hit the walls
@@ -406,11 +406,50 @@
 
   function drawLava() {
     ctx.save();
-    ctx.beginPath();
+    // ctx.beginPath();
     ctx.fillStyle = 'red';
-    ctx.rect(0, canvas.height - 90, canvas.width, 90);
-    ctx.fill();
-    ctx.closePath();
+    // ctx.rect(0, canvas.height - 90, canvas.width, 90);
+    // ctx.fill();
+    // ctx.closePath();
+
+    const lavaY = canvas.height - 90;
+    const xPoints = [];
+    // waveWidth is half of wavelength.
+    const waveWidth = 20;
+    lavaAmplitude += dLavaAmplitude;
+    if (lavaAmplitude < -maxLavaAmplitude || lavaAmplitude > maxLavaAmplitude) {
+      dLavaAmplitude *= -1;
+    }
+    for (let i = waveWidth; i < canvas.width + waveWidth; i += waveWidth) {
+      xPoints.push(i);
+    }
+    const yPoints = [];
+    for (let i = 0; i < xPoints.length; i++) {
+      // Calculate control points for the bezier curve.
+      // The sequence is: up, up, middle, down, down, middle, repeat.
+
+      const yPosition = i % 6;
+      if (yPosition == 0 || yPosition == 1) {
+        yPoints.push(lavaY - lavaAmplitude);
+      } else if (yPosition == 2 || yPosition == 5) {
+        yPoints.push(lavaY);
+      } else if (yPosition == 3 || yPosition == 4) {
+        yPoints.push(lavaY + lavaAmplitude);
+      }
+    }
+    const lavaPath = new Path2D();
+    lavaPath.moveTo(0, lavaY);
+    for (let i = 0; i < xPoints.length; i += 3) {
+      lavaPath.bezierCurveTo(xPoints[i], yPoints[i],
+        xPoints[i+1], yPoints[i+1], xPoints[i+2], yPoints[i+2]);
+    }
+    lavaPath.lineTo(canvas.width, canvas.height);
+    lavaPath.lineTo(0, canvas.height);
+    lavaPath.lineTo(0, lavaY);
+    ctx.fill(lavaPath);
+
+    // const lavaWave = new Path2D('m 7.9374999,258.15774 c 0,0 7.9375001,-13.60715 17.0089281,-9.44941 9.071429,4.15774 15.119047,28.34823 26.836311,20.03274 11.71726,-8.31548 24.190475,-21.54465 29.482142,-15.875 5.291666,5.66964 10.961309,24.94643 20.032739,17.76487 9.07143,-7.18154 27.21428,-24.94642 34.01785,-17.76487 6.80358,7.18155 16.63096,23.8125 24.19048,19.27678 7.55952,-4.5357 10.96131,-20.41071 24.56845,-15.875 13.60715,4.53572 10.58334,13.98513 17.00893,14.74107');
+    // ctx.fill(lavaWave);
 
     // Draw bubbles
     // ctx.beginPath();
