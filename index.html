@@ -179,7 +179,8 @@
   let bubbleY = maxBubbleY;
   let bubbleUpSpeed = 1.1;
   // Amplitude of control points, not of the drawn wave.
-  const maxLavaAmplitude = 8;
+  const lavaY = canvas.height - 90;
+  const maxLavaAmplitude = 10;
   let lavaAmplitude = maxLavaAmplitude;
   let dLavaAmplitude = -0.1;
 
@@ -206,6 +207,8 @@
   const minifigure = defineMinifigure();
   minifigure.x = 200;
   minifigure.y = 300;
+  const splashes = [];
+  const splashGravity = 0.2
 
   restartGame();
   // state = State.Paused;
@@ -234,7 +237,7 @@
     ctx.save();
     ctx.beginPath();
     ctx.arc(x, y, ballRadius, 0, Math.PI*2);
-    ctx.fillStyle = "#ff00DD";
+    ctx.fillStyle = "#0000FF";
     ctx.fill();
     ctx.closePath();
     ctx.restore();
@@ -266,9 +269,9 @@
       drawPauseState();
     } else {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawBall();
     drawLava();
     drawPaddle();
-    drawBall();
     drawBricks();
     drawScore();
     drawLives();
@@ -305,6 +308,20 @@
 
     detectPaddleSideCollision();
 
+    // Check if the ball hit the lava
+    if (y <= lavaY && y + dy > lavaY) {
+      const newY = y + 10;
+      const newSplashes = [-2, -1, -.5, 0, .5, 1, 2].map(dx =>
+        ({
+          x: x,
+          y: y + 10,
+          dx: dx,
+          dy: -4
+        })
+        )
+      splashes.push(...newSplashes);
+    }
+
     // Check if ball hit the floor
     if (y + dy > canvas.height) {
       lives--;
@@ -317,6 +334,12 @@
 
     x += dx;
     y += dy;
+
+    for (const splash of splashes) {
+      splash.x += splash.dx;
+      splash.y += splash.dy;
+      splash.dy += splashGravity;
+    }
 
     if (rightPressed) {
       paddleX += 7;
@@ -412,7 +435,6 @@
     // ctx.fill();
     // ctx.closePath();
 
-    const lavaY = canvas.height - 90;
     const xPoints = [];
     // waveWidth is half of wavelength.
     const waveWidth = 20;
@@ -447,9 +469,22 @@
     lavaPath.lineTo(0, canvas.height);
     lavaPath.lineTo(0, lavaY);
     ctx.fill(lavaPath);
+    ctx.restore();
 
-    // const lavaWave = new Path2D('m 7.9374999,258.15774 c 0,0 7.9375001,-13.60715 17.0089281,-9.44941 9.071429,4.15774 15.119047,28.34823 26.836311,20.03274 11.71726,-8.31548 24.190475,-21.54465 29.482142,-15.875 5.291666,5.66964 10.961309,24.94643 20.032739,17.76487 9.07143,-7.18154 27.21428,-24.94642 34.01785,-17.76487 6.80358,7.18155 16.63096,23.8125 24.19048,19.27678 7.55952,-4.5357 10.96131,-20.41071 24.56845,-15.875 13.60715,4.53572 10.58334,13.98513 17.00893,14.74107');
-    // ctx.fill(lavaWave);
+    // Draw splashes
+    ctx.save();
+    for (let i = 0; i < splashes.length; i++) {
+      const splash = splashes[i];
+      if (splash.y > canvas.height) {
+        splashes.splice(i, 1);
+      }
+
+      ctx.fillStyle = 'red';
+      ctx.beginPath();
+      ctx.arc(splash.x, splash.y - 10, 5, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.fill();
+    }
 
     // Draw bubbles
     // ctx.beginPath();
