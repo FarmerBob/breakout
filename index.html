@@ -72,6 +72,9 @@
       if (this.rotation != 0) {
         ctx.translate(this.rotationX, this.rotationY);
         ctx.rotate(this.rotation);
+      } else {
+        this.rotationX = 0;
+        this.rotationY = 0;
       }
       const relativeX = this.x - this.rotationX;
       const relativeY = this.y - this.rotationY;
@@ -84,23 +87,38 @@
   }
 
   class Path {
-    constructor({coordinates, fillStyle}) {
-      if (coordinates.length %2 != 0) {
-        throw new Error('Path coordinates should be even');
+    constructor({coordinates, fillStyle, originX, originY,
+      rotationX = 0, rotationY = 0, rotation = 0}) {
+      if (!coordinates.every(c => c.length == 2)) {
+        throw new Error('Expected array of length 2 arrays for coordinates.');
       }
       this.coordinates = coordinates;
       this.fillStyle = fillStyle;
+      this.originX = originX;
+      this.originY = originY;
+      this.rotationX = rotationX;
+      this.rotationY = rotationY;
+      this.rotation = rotation;
     }
 
     draw() {
       ctx.save();
       ctx.beginPath();
-      const x = this.coordinates[0];
-      const y = this.coordinates[1];
+      if (this.originX !== undefined && this.originY !== undefined) {
+        ctx.translate(this.originX, this.originY);
+      }
+      if (this.rotation != 0) {
+        ctx.translate(this.rotationX, this.rotationY);
+        ctx.rotate(this.rotation);
+      } else {
+        this.rotationX = 0;
+        this.rotationY = 0;
+      }
+      const relativeCoordinates = this.coordinates.map(c => ([c[0] - this.rotationX, c[1] - this.rotationY]));
+      const [x, y] = relativeCoordinates[0];
       ctx.moveTo(x, y);
-      for(let i = 2; i < this.coordinates.length; i+=2) {
-        const x = this.coordinates[i];
-        const y = this.coordinates[i + 1];
+      for(let i = 1; i < relativeCoordinates.length; i++) {
+        const [x, y] = relativeCoordinates[i];
         ctx.lineTo(x, y);
       }
       ctx.closePath();
@@ -259,10 +277,8 @@
   function resetBallPosition() {
     x = canvas.width / 2 - 190;
     y = canvas.height - 400;
-    // dx = 3;
-    // dy = 3;
-    dx = 0;
-    dy = 0;
+    dx = 3;
+    dy = 3;
   }
 
   function drawBall() {
@@ -747,24 +763,48 @@
     shapes.push(rightLeg);
     const hoverboardBottom = new Rectangle(-23, 120, 70, 10);
     shapes.push(hoverboardBottom);
+    const jetBottom = new Path({coordinates: [
+      [-23, 130],
+      [-11, 160],
+      [0, 145],
+      [12, 160],
+      [24, 145],
+      [36, 160],
+      [47, 130]
+      ], fillStyle: 'red'});
+    shapes.push(jetBottom);
     const hoverboardLeft = new Rectangle(-83, 120, 60, 10, 
       {
-         rotation: .3, rotationX: -23, rotationY: 120
+         rotation: 0.3, rotationX: -23, rotationY: 120
       });
     shapes.push(hoverboardLeft);
+    const jetLeft = new Path({
+      coordinates: [
+        [0, 0],
+        [10, 20],
+        [20, 5],
+        [30, 20],
+        [40, 5],
+        [50, 20],
+        [60, 0]
+      ],
+      originX: -83, originY: 130,
+      rotation: 0.3, rotationX: 60, rotationY: -10,
+      fillStyle: 'red'
+    });
+    shapes.push(jetLeft);
     const hoverboardRight = new Rectangle(47, 120, 60, 10, {
       rotation: -.3,
       rotationX: 47,
       rotationY: 120});
     shapes.push(hoverboardRight);
-    const jetBottom = new Path({coordinates: [-23, 130, 
-      -11, 160,
-      0, 145,
-      12, 160,
-      24, 145,
-      36, 160,
-      47, 130], fillStyle: 'red'});
-    shapes.push(jetBottom);
+    const jetRight = new Path({
+      coordinates: jetLeft.coordinates,
+      originX: 47, originY: 130,
+      rotation: -0.3, rotationX: 0, rotationY: -10,
+      fillStyle: 'red'
+    });
+    shapes.push(jetRight);
 
     return new ComplexShape(shapes, {fillStyle: 'black', strokeStyle: 'black'});
   }
