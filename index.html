@@ -83,6 +83,33 @@
     }
   }
 
+  class Path {
+    constructor({coordinates, fillStyle}) {
+      if (coordinates.length %2 != 0) {
+        throw new Error('Path coordinates should be even');
+      }
+      this.coordinates = coordinates;
+      this.fillStyle = fillStyle;
+    }
+
+    draw() {
+      ctx.save();
+      ctx.beginPath();
+      const x = this.coordinates[0];
+      const y = this.coordinates[1];
+      ctx.moveTo(x, y);
+      for(let i = 2; i < this.coordinates.length; i+=2) {
+        const x = this.coordinates[i];
+        const y = this.coordinates[i + 1];
+        ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fillStyle = this.fillStyle;
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
   class Line {
     constructor(x1, y1, x2, y2) {
       this.x1 = x1;
@@ -184,6 +211,9 @@
   let lavaAmplitude = maxLavaAmplitude;
   let dLavaAmplitude = -0.1;
 
+  let mouseX;
+  let mouseY;
+
   const ballRadius = 10;
   let x;
   let y;
@@ -229,8 +259,10 @@
   function resetBallPosition() {
     x = canvas.width / 2 - 190;
     y = canvas.height - 400;
-    dx = 3;
-    dy = 3;
+    // dx = 3;
+    // dy = 3;
+    dx = 0;
+    dy = 0;
   }
 
   function drawBall() {
@@ -275,6 +307,7 @@
     drawBricks();
     drawScore();
     drawLives();
+    drawCoordinates();
     minifigure.draw(ctx);
 
     bubbleY -= bubbleUpSpeed;
@@ -406,6 +439,17 @@
     ctx.restore();
   }
 
+  function drawCoordinates() {
+    ctx.save();
+    ctx.font = "16px Arial";
+    ctx.fillStyle = "#0095DD";
+    if (mouseX && mouseY) {
+      ctx.fillText("x: " + (mouseX - minifigure.x) + " y: " + (mouseY - minifigure.y), canvas.width / 2, 20);
+      // ctx.fillText("x: " + mouseX + " y: " + mouseY, canvas.width / 2, 20);
+    }
+    ctx.restore();
+  }
+
 
   function drawBricks() {
     ctx.save();
@@ -481,7 +525,7 @@
 
       ctx.fillStyle = 'red';
       ctx.beginPath();
-      ctx.arc(splash.x, splash.y - 10, 5, 0, Math.PI * 2);
+      ctx.arc(splash.x, splash.y - 10, 4, 0, Math.PI * 2);
       ctx.closePath();
       ctx.fill();
     }
@@ -530,6 +574,8 @@
         paddleX = relativeX - paddleWidth/2;
         detectPaddleSideCollision();
     }
+    mouseX = relativeX;
+    mouseY = e.clientY - canvas.offsetTop;
   }
 
   function mouseDownHandler(e) {
@@ -711,6 +757,14 @@
       rotationX: 47,
       rotationY: 120});
     shapes.push(hoverboardRight);
+    const jetBottom = new Path({coordinates: [-23, 130, 
+      -11, 160,
+      0, 145,
+      12, 160,
+      24, 145,
+      36, 160,
+      47, 130], fillStyle: 'red'});
+    shapes.push(jetBottom);
 
     return new ComplexShape(shapes, {fillStyle: 'black', strokeStyle: 'black'});
   }
