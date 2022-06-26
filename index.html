@@ -88,7 +88,7 @@
   }
 
   class Path {
-    constructor({coordinates, animateToCoordinates, animateMillis, fillStyle, originX, originY,
+    constructor({coordinates, animateToCoordinates, fillStyle, originX, originY,
       rotationX = 0, rotationY = 0, rotation = 0}) {
       if (!coordinates.every(c => c.length == 2)) {
         throw new Error('Expected array of length 2 arrays for coordinates.');
@@ -372,6 +372,9 @@
       ) {
       if (x > paddleX && x < paddleX + paddleWidth) {
         dy = -dy;
+        // Make the ball go faster after each hit
+        dx += 0.13 * dx;
+        dy += 0.13 * dy;
       }
     } 
 
