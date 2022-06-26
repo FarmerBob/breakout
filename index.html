@@ -9,6 +9,7 @@
       canvas { background: #eee; display: block; margin: 0 auto; }
     </style>
 </head>
+
 <body>
 
 <canvas id="myCanvas" width="480" height="320"></canvas>
@@ -460,8 +461,8 @@
     ctx.font = "16px Arial";
     ctx.fillStyle = "#0095DD";
     if (mouseX && mouseY) {
-      ctx.fillText("x: " + (mouseX - minifigure.x) + " y: " + (mouseY - minifigure.y), canvas.width / 2, 20);
-      // ctx.fillText("x: " + mouseX + " y: " + mouseY, canvas.width / 2, 20);
+      // ctx.fillText("x: " + (mouseX - minifigure.x) + " y: " + (mouseY - minifigure.y), canvas.width / 2, 20);
+      ctx.fillText("x: " + mouseX + " y: " + mouseY, canvas.width / 2, 20);
     }
     ctx.restore();
   }
@@ -489,11 +490,7 @@
 
   function drawLava() {
     ctx.save();
-    // ctx.beginPath();
     ctx.fillStyle = 'red';
-    // ctx.rect(0, canvas.height - 90, canvas.width, 90);
-    // ctx.fill();
-    // ctx.closePath();
 
     const xPoints = [];
     // waveWidth is half of wavelength.
@@ -502,7 +499,10 @@
     if (lavaAmplitude < -maxLavaAmplitude || lavaAmplitude > maxLavaAmplitude) {
       dLavaAmplitude *= -1;
     }
-    for (let i = waveWidth; i < canvas.width + waveWidth; i += waveWidth) {
+
+    // Draw the waves beyond cavas width because bezier curve requires 3 points and we need to make
+    // sure we don't stop drawing before the canvas width.
+    for (let i = waveWidth; i < canvas.width + waveWidth * 3; i += waveWidth) {
       xPoints.push(i);
     }
     const yPoints = [];
@@ -521,7 +521,11 @@
     }
     const lavaPath = new Path2D();
     lavaPath.moveTo(0, lavaY);
-    for (let i = 0; i < xPoints.length; i += 3) {
+
+    if (xPoints[xPoints.length - 1] < canvas.width) {
+      xPoints[xPoints.length - 1] = canvas.width - 1;
+    }
+    for (let i = 0; i < xPoints.length - 2; i += 3) {
       lavaPath.bezierCurveTo(xPoints[i], yPoints[i],
         xPoints[i+1], yPoints[i+1], xPoints[i+2], yPoints[i+2]);
     }
@@ -529,6 +533,11 @@
     lavaPath.lineTo(0, canvas.height);
     lavaPath.lineTo(0, lavaY);
     ctx.fill(lavaPath);
+    ctx.restore();
+
+    ctx.save();
+    const text = ctx.measureText("last point");
+    ctx.fillText("last point", xPoints[xPoints.length - 1] - text.width, yPoints[yPoints.length - 1]);
     ctx.restore();
 
     // Draw splashes
