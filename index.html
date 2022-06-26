@@ -88,18 +88,20 @@
   }
 
   class Path {
-    constructor({coordinates, fillStyle, originX, originY,
+    constructor({coordinates, animateToCoordinates, animateMillis, fillStyle, originX, originY,
       rotationX = 0, rotationY = 0, rotation = 0}) {
       if (!coordinates.every(c => c.length == 2)) {
         throw new Error('Expected array of length 2 arrays for coordinates.');
       }
       this.coordinates = coordinates;
+      this.animateToCoordinates = animateToCoordinates;
       this.fillStyle = fillStyle;
       this.originX = originX;
       this.originY = originY;
       this.rotationX = rotationX;
       this.rotationY = rotationY;
       this.rotation = rotation;
+      this.tick = 0;
     }
 
     draw() {
@@ -111,15 +113,17 @@
       if (this.rotation != 0) {
         ctx.translate(this.rotationX, this.rotationY);
         ctx.rotate(this.rotation);
+        ctx.translate(-this.rotationX, -this.rotationY);
       } else {
         this.rotationX = 0;
         this.rotationY = 0;
       }
-      const relativeCoordinates = this.coordinates.map(c => ([c[0] - this.rotationX, c[1] - this.rotationY]));
-      const [x, y] = relativeCoordinates[0];
+      const [x, y] = this.coordinates[0];
       ctx.moveTo(x, y);
-      for(let i = 1; i < relativeCoordinates.length; i++) {
-        const [x, y] = relativeCoordinates[i];
+
+
+      for(let i = 1; i < this.coordinates.length; i++) {
+        const [x, y] = this.coordinates[i];
         ctx.lineTo(x, y);
       }
       ctx.closePath();
@@ -151,14 +155,30 @@
     x;
     y;
     shapes;
-    constructor(shapes, {fillStyle, strokeStyle} = {}) {
+    constructor(shapes, {fillStyle, strokeStyle, rotationX = 0, rotationY = 0, rotation = 0,
+      x, y} = {}) {
       this.shapes = shapes;
       this.fillStyle = fillStyle;
       this.strokeStyle = strokeStyle;
+      this.x = x;
+      this.y = y;
+      this.rotationX = rotationX;
+      this.rotationY = rotationY;
+      this.rotation = rotation;
     }
 
-    draw(ctx) {
+    draw() {
       ctx.save();
+      ctx.translate(this.x, this.y);
+      if (this.rotation != 0) {
+        ctx.translate(this.rotationX, this.rotationY);
+        ctx.rotate(this.rotation);
+        ctx.translate(-this.rotationX, -this.rotationY);
+      } else {
+        this.rotationX = 0;
+        this.rotationY = 0;
+      }
+
       ctx.lineWidth = 2;
       if (this.fillStyle != undefined) {
         ctx.fillStyle = this.fillStyle;
@@ -166,7 +186,6 @@
       if (this.strokeStyle != undefined) {
         ctx.strokeStyle = this.strokeStyle;
       }
-      ctx.translate(this.x, this.y);
 
       for(let shape of this.shapes) {
         shape.draw();
@@ -325,7 +344,7 @@
     drawScore();
     drawLives();
     drawCoordinates();
-    minifigure.draw(ctx);
+    minifigure.draw();
 
     bubbleY -= bubbleUpSpeed;
     if(bubbleY < minBubbleY) {
@@ -782,12 +801,22 @@
       [47, 130]
       ], fillStyle: 'red'});
     shapes.push(jetBottom);
+    const jetInnerBottom = new Path({coordinates: [
+      [-19, 130],
+      [-10, 145],
+      [0, 130],
+      [12, 145],
+      [24, 130],
+      [34, 145],
+      [42, 130]
+      ], fillStyle: 'orange'});
+    shapes.push(jetInnerBottom);
     const hoverboardLeft = new Rectangle(-83, 120, 60, 10, 
       {
          rotation: 0.3, rotationX: -23, rotationY: 120
       });
     shapes.push(hoverboardLeft);
-    const jetLeft = new Path({
+    const jetOuterLeft = new Path({
       coordinates: [
         [0, 0],
         [10, 20],
@@ -797,22 +826,50 @@
         [50, 20],
         [60, 0]
       ],
-      originX: -83, originY: 130,
-      rotation: 0.3, rotationX: 60, rotationY: -10,
+      animateToCoordinates: [
+        [0, 0],
+        [10, 18],
+        [20, 3],
+        [30, 20],
+        [40, 3],
+        [50, 18],
+        [60, 0]
+      ],
+      animateMillis: 500,
       fillStyle: 'red'
     });
+    const jetInnerLeft = new Path({
+      coordinates: [
+        [3, 0],
+        [10, 8],
+        [20, 0],
+        [30, 8],
+        [40, 0],
+        [50, 8],
+        [56, 0]
+      ],
+      fillStyle: 'orange'
+    });
+    const jetLeft = new ComplexShape([jetOuterLeft, jetInnerLeft],
+      {  
+        x: -83, y: 130,
+        rotation: 0.3, rotationX: 60, rotationY: -10}
+    );
     shapes.push(jetLeft);
     const hoverboardRight = new Rectangle(47, 120, 60, 10, {
       rotation: -.3,
       rotationX: 47,
       rotationY: 120});
     shapes.push(hoverboardRight);
-    const jetRight = new Path({
-      coordinates: jetLeft.coordinates,
-      originX: 47, originY: 130,
-      rotation: -0.3, rotationX: 0, rotationY: -10,
-      fillStyle: 'red'
-    });
+    const jetRight = new ComplexShape(
+      [
+        new Path({coordinates: jetOuterLeft.coordinates, fillStyle: 'red'}),
+        new Path({coordinates: jetInnerLeft.coordinates, fillStyle: 'orange'})],
+      {
+        x: 47, y: 130,
+        rotation: -0.3, rotationX: 0, rotationY: -10,
+      },
+    );
     shapes.push(jetRight);
 
     return new ComplexShape(shapes, {fillStyle: 'black', strokeStyle: 'black'});
